@@ -1,0 +1,9 @@
+*~
+*.vcd
+*.vvp
+*.hex
+*.bin
+*.asc
+*.rpt
+*.json
+*.log
