@@ -28,14 +28,14 @@ module testbench;
    initial begin
       $dumpfile("testbench.vcd");
       $dumpvars(0, testbench);
-      for (i = 0; i < 8; i = i + 1) begin
+      for (i = 0; i < 256; i = i + 1) begin
 	 cdp.memory.mem[i] = i;
 	 $dumpvars(1, cdp.memory.mem[i]);
       end
 
       repeat (4) begin
-	 repeat (5000) @(posedge clk);
-	 $display("+5000 cycles");
+	 repeat (50000) @(posedge clk);
+	 $display("+50000 cycles");
       end
       $finish;
    end
@@ -105,47 +105,46 @@ module testbench;
 
    always @(negedge xclk)
      begin
-	tpa <= (cpu_cycle_cnt == 0) ? 1 : 0;
-	tpb <= (cpu_cycle_cnt == 6) ? 1 : 0;
+	tpa <= #10 (cpu_cycle_cnt == 0) ? 1 : 0;
+	tpb <= #10 (cpu_cycle_cnt == 6) ? 1 : 0;
 
  	if (cpu_cycle_cnt == 0 || cpu_cycle_cnt == 1)
 	  begin
-	     ma0 <= 0;
-	     ma1 <= 0;
-	     ma2 <= 0;
-	     ma3 <= 0;
-	     ma4 <= 0;
-	     ma5 <= 0;
-	     ma6 <= 0;
-	     ma7 <= 0;
-	  end // if (cycle_cnt == 0 || cycle_cnt == 1)
+	     ma0 <= #20 0;
+	     ma1 <= #20 0;
+	     ma2 <= #20 0;
+	     ma3 <= #20 0;
+	     ma4 <= #20 0;
+	     ma5 <= #20 0;
+	     ma6 <= #20 0;
+	     ma7 <= #20 0;
+	  end // if (cpu_cycle_cnt == 0 || cpu_cycle_cnt == 1)
 	else
 	  begin
-	     ma0 <= count[1];
-	     ma1 <= count[2];
-	     ma2 <= count[3];
-	     ma3 <= count[4];
-	     ma4 <= count[5];
-	     ma5 <= count[6];
-	     ma6 <= count[7];
-	     ma7 <= count[8];
+	     ma0 <= #20 count[1];
+	     ma1 <= #20 count[2];
+	     ma2 <= #20 count[3];
+	     ma3 <= #20 count[4];
+	     ma4 <= #20 count[5];
+	     ma5 <= #20 count[6];
+	     ma6 <= #20 count[7];
+	     ma7 <= #20 count[8];
 	  end
 	if (count[0] == 0 && cpu_cycle_cnt == 7)
 	  begin
 	     rdata <= {db7, db6, db5, db4, db3, db2, db1, db0};
 	  end
- 	else if (count[0] && cpu_cycle_cnt == 6)
+ 	else if (count[0] && cpu_cycle_cnt == 7)
 	  begin
-	     wdata <= wdata + 1;
+	     wdata <= rdata + 2;
 	  end
 	nmrd <= !(count[0] == 0 && cpu_cycle_cnt != 0 && cpu_cycle_cnt != 1);
-	nmwr <= 1;
-/*
+//	nmwr <= 1;
   	nmwr <= !(count[0]
 		 && (cpu_cycle_cnt == 4
 		     || cpu_cycle_cnt == 5
 		     || cpu_cycle_cnt == 6));
-*/
+
 	count <= count + &cpu_cycle_cnt;
 	cpu_cycle_cnt <= cpu_cycle_cnt + 1;
      end // always begin

@@ -63,14 +63,14 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    //reg [7:0]  patb = 8'b01010101;
    //reg 	      patcnt = 0;
 
-   assign db0_oe = !mem_rreq;
-   assign db1_oe = !mem_rreq;
-   assign db2_oe = !mem_rreq;
-   assign db3_oe = !mem_rreq;
-   assign db4_oe = !mem_rreq;
-   assign db5_oe = !mem_rreq;
-   assign db6_oe = !mem_rreq;
-   assign db7_oe = !mem_rreq;
+   assign db0_oe = !nmrd;
+   assign db1_oe = !nmrd;
+   assign db2_oe = !nmrd;
+   assign db3_oe = !nmrd;
+   assign db4_oe = !nmrd;
+   assign db5_oe = !nmrd;
+   assign db6_oe = !nmrd;
+   assign db7_oe = !nmrd;
    assign db0_do = mem_rdata[0];
    assign db1_do = mem_rdata[1];
    assign db2_do = mem_rdata[2];
@@ -107,6 +107,12 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	     end
 	   if (!xclk && clk_cnt[2]) // xclk rising
 	     begin
+		if (tpb)
+		  begin
+		     xclk_cycle <= 7;
+		     mem_wreq <= 0;
+		     init_cycle <= 0;
+		  end
 		if (!init_cycle && xclk_cycle == 3)
 		  begin
 		     mem_addr[7:0] <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
@@ -122,22 +128,19 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 			  mem_rdata <= mem[mem_addr];
 		       end
 		  end
-		if (!init_cycle && nmwr == 0 && xclk_cycle == 5)
-		  begin
-		     mem_wreq <= 1;
-		  end  
-		if (tpb)
-		  begin
-		     xclk_cycle <= 7;
-		     mem_wreq <= 0;
-		     init_cycle <= 0;
-		  end
 	     end
 	   if (!init_cycle && xclk && !clk_cnt[2]) // xclk falling
 	     begin
 		if (tpa)
 		  begin
+		     xclk_cycle <= 2;
 		     mem_addr[15:8] <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
+		  end
+		// cycle count is updated already at the falling edge
+		// i.e. xclk_cycle N means the start of cycle N.
+		if (nmwr == 0 && xclk_cycle == 6)
+		  begin
+		     mem_wreq <= 1;
 		  end
 		if (mem_wreq)
 		  begin
@@ -145,7 +148,7 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 		     mem[mem_addr] <= {db7_di, db6_di, db5_di, db4_di,
 				       db3_di, db2_di, db1_di, db0_di};
 		  end
-		if (xclk_cycle == 7)
+		if (xclk_cycle == 0)
 		  begin
 		     mem_rreq <= 0;
 		  end
