@@ -43,14 +43,16 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
     input  db5_di,
     input  db6_di,
     input  db7_di,
-    output ce
+    output ce,
+    output probe
    );
 
    reg 	   xclk, nwait, clr;
    
    reg [7:0] mem [0:MEM_WORDS-1];
 
-   reg [15:0] mem_addr;
+   wire [15:0]  mem_addr;
+   reg [7:0] 	mem_loaddr, mem_hiaddr;
    reg [7:0]  mem_rdata;
    reg [7:0]  mem_wdata;
    reg [2:0]  clk_cnt;
@@ -58,10 +60,14 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    reg 	      mem_wreq;
    reg 	      mem_rreq;
    reg 	      init_cycle;
+   reg 	      tpa_sync;
 
-   //reg [7:0]  pata = 8'b10101010;
-   //reg [7:0]  patb = 8'b01010101;
-   //reg 	      patcnt = 0;
+   reg [15:0] load_addr;
+   reg [7:0]  load_data;
+   reg 	      lclk;
+   reg 	      load;
+
+   assign mem_addr = { mem_hiaddr, mem_loaddr };
 
    assign db0_oe = !nmrd;
    assign db1_oe = !nmrd;
@@ -80,6 +86,20 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    assign db6_do = mem_rdata[6];
    assign db7_do = mem_rdata[7];
 
+   function [7:0] flash_mem;
+      input reg [15:0] addr;
+ 
+      case(addr)
+	0: flash_mem = 8'hE1; // SEX 1
+	1: flash_mem = 8'h7B; // SEQ
+	2: flash_mem = 8'hC4; // NOP
+	3: flash_mem = 8'h7A; // REQ
+	4: flash_mem = 8'h30; // BR 1
+	5: flash_mem = 8'h01; //     ;to 1
+	default: flash_mem = 8'h00;
+      endcase // case (addr)
+   endfunction // flash_mem
+
    always @(posedge clk) begin
       if (!resetn)
 	begin
@@ -91,12 +111,28 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	   // Reset /CLR=L, /WAIT=H at least 200ns
 	   nwait <= 1;
 	   clr <= 0;
-	   mem_addr <= 0;
-	   init_cycle <= 1;
-
-	   //patcnt <= patcnt + 1;
-	   //mem[patcnt] <= patcnt ? patb : pata;
+	   mem_hiaddr <= 0;
+	   mem_loaddr <= 0;
+	   tpa_sync <= 0;
+	   init_cycle <= 0;
+	   // Initialize loader
+	   load <= 1;
+	   lclk <= 0;
+	   load_addr <= 0;
 	end // if (!resetn)
+      else if (load)
+	begin
+	   clk_cnt <= clk_cnt + 1;
+	   load_data <= flash_mem(load_addr);
+	   if (lclk && !clk_cnt[2]) // lclk falling
+	     begin
+		mem[load_addr] <= load_data;
+		load_addr <= load_addr + 1;
+	     end
+	   if (load_addr == 8)
+	     load <= 0;
+	   lclk <= clk_cnt[2];
+	end
       else
 	begin
 	   clr <= 1;
@@ -105,6 +141,7 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	     begin
 		xclk_cycle <= xclk_cycle + 1;
 	     end
+	   tpa_sync <= tpa;
 	   if (!xclk && clk_cnt[2]) // xclk rising
 	     begin
 		if (tpb)
@@ -115,27 +152,15 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 		  end
 		if (!init_cycle && xclk_cycle == 3)
 		  begin
-		     mem_addr[7:0] <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
+		     mem_loaddr <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
 		     if (nmrd == 0)
 		       begin
 			  mem_rreq <= 1;
 		       end
 		  end
-		if (!init_cycle && xclk_cycle == 4)
-		  begin
-		     if (mem_rreq)
-		       begin
-			  mem_rdata <= mem[mem_addr];
-		       end
-		  end
 	     end
 	   if (!init_cycle && xclk && !clk_cnt[2]) // xclk falling
 	     begin
-		if (tpa)
-		  begin
-		     xclk_cycle <= 2;
-		     mem_addr[15:8] <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
-		  end
 		// cycle count is updated already at the falling edge
 		// i.e. xclk_cycle N means the start of cycle N.
 		if (nmwr == 0 && xclk_cycle == 6)
@@ -153,9 +178,19 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 		     mem_rreq <= 0;
 		  end
 	     end // if (xclk && !clk_cnt[2])
+	   if (tpa_sync && !tpa) // tpa falling
+	     begin
+		mem_hiaddr <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
+	     end
+	   if (mem_rreq)
+	     begin
+		mem_rdata <= mem[mem_addr];
+		//mem[mem_addr] = 8'b11111111;
+	     end
 
 	   xclk <= clk_cnt[2];
 	end
    end
 
-endmodule
+endmodule // cosmem
+   

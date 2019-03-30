@@ -28,8 +28,8 @@ module testbench;
    initial begin
       $dumpfile("testbench.vcd");
       $dumpvars(0, testbench);
-      for (i = 0; i < 256; i = i + 1) begin
-	 cdp.memory.mem[i] = i;
+      for (i = 0; i < 16; i = i + 1) begin
+//	 cdp.memory.mem[i] = i & 255;
 	 $dumpvars(1, cdp.memory.mem[i]);
       end
 
@@ -71,14 +71,14 @@ module testbench;
 		 .pin_5   (nmrd   ),
 		 .pin_6   (tpa   ),
 		 .pin_7   (tpb   ),
-		 .pin_8   (ma0   ),
-		 .pin_9   (ma1   ),
-		 .pin_10  (ma2   ),
-		 .pin_11  (ma3   ),
-		 .pin_12  (ma4   ),
-		 .pin_13  (ma5   ),
-		 .pin_14  (ma6   ),
-		 .pin_15  (ma7   ),
+		 .pin_15  (ma0   ),
+		 .pin_14  (ma1   ),
+		 .pin_13  (ma2   ),
+		 .pin_12  (ma3   ),
+		 .pin_11  (ma4   ),
+		 .pin_10  (ma5   ),
+		 .pin_9   (ma6   ),
+		 .pin_8   (ma7   ),
 		 .pin_16  (db0   ),
 		 .pin_17  (db1   ),
 		 .pin_18  (db2   ),
@@ -139,12 +139,13 @@ module testbench;
 	     wdata <= rdata + 2;
 	  end
 	nmrd <= !(count[0] == 0 && cpu_cycle_cnt != 0 && cpu_cycle_cnt != 1);
-//	nmwr <= 1;
-  	nmwr <= !(count[0]
+	nmwr <= 1;
+/*
+   	nmwr <= !(count[0]
 		 && (cpu_cycle_cnt == 4
 		     || cpu_cycle_cnt == 5
 		     || cpu_cycle_cnt == 6));
-
+*/
 	count <= count + &cpu_cycle_cnt;
 	cpu_cycle_cnt <= cpu_cycle_cnt + 1;
      end // always begin

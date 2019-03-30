@@ -39,7 +39,7 @@ module hardware (
     input  pin_6,
     // TPB
     input  pin_7,
-    // MA0-MA7
+    // MA0-MA7 (reversed order)
     input  pin_8,
     input  pin_9,
     input  pin_10,
@@ -109,14 +109,14 @@ module hardware (
 	.nmrd         (pin_5       ),
 	.tpa          (pin_6       ),
 	.tpb          (pin_7       ),
-	.ma0          (pin_8       ),
-	.ma1          (pin_9       ),
-	.ma2          (pin_10      ),
-	.ma3          (pin_11      ),
-	.ma4          (pin_12      ),
-	.ma5          (pin_13      ),
-	.ma6          (pin_14      ),
-	.ma7          (pin_15      ),
+	.ma0          (pin_15      ),
+	.ma1          (pin_14      ),
+	.ma2          (pin_13      ),
+	.ma3          (pin_12      ),
+	.ma4          (pin_11      ),
+	.ma5          (pin_10      ),
+	.ma6          (pin_9       ),
+	.ma7          (pin_8       ),
 	.db0_oe       (db0_oe      ),
 	.db1_oe       (db1_oe      ),
 	.db2_oe       (db2_oe      ),
@@ -141,6 +141,7 @@ module hardware (
 	.db5_di       (db5_di      ),
 	.db6_di       (db6_di      ),
 	.db7_di       (db7_di      ),
-	.ce           (pin_24      )
+	.ce           (pin_24      ),
+	.probe        (user_led)
     );
 endmodule

@@ -16,7 +16,7 @@ hardware.asc: hardware.pcf hardware.json
 	nextpnr-ice40 --lp8k --package cm81 --json hardware.json --pcf hardware.pcf --asc hardware.asc
 
 hardware.bin: hardware.asc
-	icetime -d lp8k -c 16 -mtr hardware.rpt hardware.asc
+	icetime -d hx8k -c 12 -mtr hardware.rpt hardware.asc
 	icepack hardware.asc hardware.bin
 
 clean:
