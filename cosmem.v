@@ -1,3 +1,22 @@
+/*
+ *  Cosmem - A simple example memory/controller chip for COSMAC
+ *
+ *  Copyright (C) 2019  Kaz Kojima <kkojima@rr.iij4u.or.jp>
+ *
+ *  Permission to use, copy, modify, and/or distribute this software for any
+ *  purpose with or without fee is hereby granted, provided that the above
+ *  copyright notice and this permission notice appear in all copies.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
 module cosmem #(parameter integer MEM_WORDS = 1024,
 		parameter integer XCLK_DIV = 8)
    (
@@ -180,21 +199,6 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	   lclk <= 0;
 	   load_addr <= 0;
 	end // if (!resetn)
-/*
-       else if (spi_config)
-	begin
-	   // 31:en 22:ddr 21:qspi 20:cont 19-16:dummy
-	   // 11-8:oe 5:csb 4:clk 3-0:di
-	   spimem_config_di <= { 1'b1, 8'b0, 1'b1, 1'b1, 1'b0, 4'b0,
-				 4b'0, 4'b0, 2'b0, 1'b0, 1'b0, 4'b0 };
-	   spimem_valid <= 1;
-	   spimemio_cfgreg_sel <= 1;
-	   if (spimem_ready)
-	     begin
-		spi_config <= 0;
-	     end
-	end
-*/
       else if (load)
 	begin
 	   clk_cnt <= clk_cnt + 1;
@@ -267,7 +271,6 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	   if (mem_rreq)
 	     begin
 		mem_rdata <= mem[mem_addr];
-		//mem[mem_addr] = 8'b11111111;
 	     end
 
 	   xclk <= clk_cnt[2];
@@ -275,4 +278,3 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    end
 
 endmodule // cosmem
-   
