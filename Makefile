@@ -1,15 +1,15 @@
 
-upload: hardware.bin
-	tinyprog -p hardware.bin
+upload: hardware.bin firmware.bin
+	tinyprog -p hardware.bin -u firmware.bin
 
 sim: hx8kdemo_tb.vvp
 	vvp -N $<
 	gtkwave testbench.vcd
 
-hx8kdemo_tb.vvp: hx8kdemo_tb.v hardware.v cosmem.v
+hx8kdemo_tb.vvp: hx8kdemo_tb.v hardware.v cosmem.v spimemio.v
 	iverilog -s testbench -o $@ $^ /usr/local/share/yosys/ice40/cells_sim.v
 
-hardware.json: hardware.v cosmem.v
+hardware.json: hardware.v cosmem.v spimemio.v
 	yosys -ql hardware.log -p 'synth_ice40 -top hardware -json hardware.json' $^
 
 hardware.asc: hardware.pcf hardware.json

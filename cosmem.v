@@ -44,6 +44,25 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
     input  db6_di,
     input  db7_di,
     output ce,
+
+    output flash_csb,
+    output flash_clk,
+
+    output flash_io0_oe,
+    output flash_io1_oe,
+    output flash_io2_oe,
+    output flash_io3_oe,
+
+    output flash_io0_do,
+    output flash_io1_do,
+    output flash_io2_do,
+    output flash_io3_do,
+
+    input  flash_io0_di,
+    input  flash_io1_di,
+    input  flash_io2_di,
+    input  flash_io3_di,
+    
     output probe
    );
 
@@ -67,6 +86,13 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    reg 	      lclk;
    reg 	      load;
 
+   reg        spimem_valid = 1;
+   reg [23:0] spimem_addr;
+   wire       spimem_ready;
+   wire [31:0] spimem_rdata;
+   wire [31:0] spimemio_cfgreg_di;
+   wire [31:0] spimemio_cfgreg_do;
+   
    assign mem_addr = { mem_hiaddr, mem_loaddr };
 
    assign db0_oe = !nmrd;
@@ -86,7 +112,40 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    assign db6_do = mem_rdata[6];
    assign db7_do = mem_rdata[7];
 
-   function [7:0] flash_mem;
+   spimemio spimemio
+     (
+      .clk    (clk),
+      .resetn (resetn),
+      .valid  (spimem_valid),
+      .ready  (spimem_ready),
+      .addr   (spimem_addr),
+      .rdata  (spimem_rdata),
+
+      .flash_csb    (flash_csb   ),
+      .flash_clk    (flash_clk   ),
+
+      .flash_io0_oe (flash_io0_oe),
+      .flash_io1_oe (flash_io1_oe),
+      .flash_io2_oe (flash_io2_oe),
+      .flash_io3_oe (flash_io3_oe),
+
+      .flash_io0_do (flash_io0_do),
+      .flash_io1_do (flash_io1_do),
+      .flash_io2_do (flash_io2_do),
+      .flash_io3_do (flash_io3_do),
+
+      .flash_io0_di (flash_io0_di),
+      .flash_io1_di (flash_io1_di),
+      .flash_io2_di (flash_io2_di),
+      .flash_io3_di (flash_io3_di),
+
+      .cfgreg_we(4'b0000),
+      .cfgreg_di(spimemio_cfgreg_di),
+      .cfgreg_do(spimemio_cfgreg_do)
+      );
+
+/*
+    function [7:0] flash_mem;
       input reg [15:0] addr;
  
       case(addr)
@@ -99,6 +158,7 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	default: flash_mem = 8'h00;
       endcase // case (addr)
    endfunction // flash_mem
+*/
 
    always @(posedge clk) begin
       if (!resetn)
@@ -120,16 +180,38 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	   lclk <= 0;
 	   load_addr <= 0;
 	end // if (!resetn)
+/*
+       else if (spi_config)
+	begin
+	   // 31:en 22:ddr 21:qspi 20:cont 19-16:dummy
+	   // 11-8:oe 5:csb 4:clk 3-0:di
+	   spimem_config_di <= { 1'b1, 8'b0, 1'b1, 1'b1, 1'b0, 4'b0,
+				 4b'0, 4'b0, 2'b0, 1'b0, 1'b0, 4'b0 };
+	   spimem_valid <= 1;
+	   spimemio_cfgreg_sel <= 1;
+	   if (spimem_ready)
+	     begin
+		spi_config <= 0;
+	     end
+	end
+*/
       else if (load)
 	begin
 	   clk_cnt <= clk_cnt + 1;
-	   load_data <= flash_mem(load_addr);
-	   if (lclk && !clk_cnt[2]) // lclk falling
+	   spimem_addr <= { 8'h05, load_addr[15:2], 2'b00 };
+	   //load_data <= flash_mem(load_addr);
+	   if (spimem_ready && lclk && !clk_cnt[2]) // lclk falling
 	     begin
-		mem[load_addr] <= load_data;
+		case(load_addr & 3)
+		  // little endian
+		  0: mem[load_addr] <= spimem_rdata[7:0];
+		  1: mem[load_addr] <= spimem_rdata[15:8];
+		  2: mem[load_addr] <= spimem_rdata[23:16];
+		  3: mem[load_addr] <= spimem_rdata[31:24];
+		endcase
 		load_addr <= load_addr + 1;
 	     end
-	   if (load_addr == 8)
+	   if (load_addr == MEM_WORDS)
 	     load <= 0;
 	   lclk <= clk_cnt[2];
 	end
