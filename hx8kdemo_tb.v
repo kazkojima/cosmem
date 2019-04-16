@@ -110,6 +110,7 @@ module testbench;
 
  	if (cpu_cycle_cnt == 0 || cpu_cycle_cnt == 1)
 	  begin
+/*
 	     ma0 <= #20 0;
 	     ma1 <= #20 0;
 	     ma2 <= #20 0;
@@ -118,9 +119,19 @@ module testbench;
 	     ma5 <= #20 0;
 	     ma6 <= #20 0;
 	     ma7 <= #20 0;
+ */
+	     ma0 <= #20 0;
+	     ma1 <= #20 0;
+	     ma2 <= #20 0;
+	     ma3 <= #20 0;
+	     ma4 <= #20 1;
+	     ma5 <= #20 1;
+	     ma6 <= #20 1;
+	     ma7 <= #20 1;
 	  end // if (cpu_cycle_cnt == 0 || cpu_cycle_cnt == 1)
 	else
 	  begin
+/*
 	     ma0 <= #20 count[1];
 	     ma1 <= #20 count[2];
 	     ma2 <= #20 count[3];
@@ -129,23 +140,30 @@ module testbench;
 	     ma5 <= #20 count[6];
 	     ma6 <= #20 count[7];
 	     ma7 <= #20 count[8];
+ */
+	     ma0 <= #20 count[1];
+	     ma1 <= #20 count[2];
+	     ma2 <= #20 count[3];
+	     ma3 <= #20 count[4];
+	     ma4 <= #20 0;
+	     ma5 <= #20 0;
+	     ma6 <= #20 0;
+	     ma7 <= #20 0;
 	  end
 	if (count[0] == 0 && cpu_cycle_cnt == 7)
 	  begin
 	     rdata <= {db7, db6, db5, db4, db3, db2, db1, db0};
 	  end
- 	else if (count[0] && cpu_cycle_cnt == 7)
+ 	else if (count[0] && cpu_cycle_cnt == 3)
 	  begin
-	     wdata <= rdata + 2;
+	     wdata <= 8'b11000101+{ma2,ma1,ma0}; //rdata + 2;
 	  end
 	nmrd <= !(count[0] == 0 && cpu_cycle_cnt != 0 && cpu_cycle_cnt != 1);
-	nmwr <= 1;
-/*
+//	nmwr <= 1;
    	nmwr <= !(count[0]
 		 && (cpu_cycle_cnt == 4
 		     || cpu_cycle_cnt == 5
 		     || cpu_cycle_cnt == 6));
-*/
 	count <= count + &cpu_cycle_cnt;
 	cpu_cycle_cnt <= cpu_cycle_cnt + 1;
      end // always begin

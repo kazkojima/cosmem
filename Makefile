@@ -6,10 +6,10 @@ sim: hx8kdemo_tb.vvp
 	vvp -N $<
 	gtkwave testbench.vcd
 
-hx8kdemo_tb.vvp: hx8kdemo_tb.v hardware.v cosmem.v spimemio.v
+hx8kdemo_tb.vvp: hx8kdemo_tb.v hardware.v cosmem.v spimemio.v spimbox.v
 	iverilog -s testbench -o $@ $^ /usr/local/share/yosys/ice40/cells_sim.v
 
-hardware.json: hardware.v cosmem.v spimemio.v
+hardware.json: hardware.v cosmem.v spimemio.v spimbox.v
 	yosys -ql hardware.log -p 'synth_ice40 -top hardware -json hardware.json' $^
 
 hardware.asc: hardware.pcf hardware.json
@@ -19,8 +19,12 @@ hardware.bin: hardware.asc
 	icetime -d hx8k -c 12 -mtr hardware.rpt hardware.asc
 	icepack hardware.asc hardware.bin
 
+# firmware.bin: firmware.S
+#	cosmac-elf-as -o firmware.o $^
+#	cosmac-elf-objcopy -I elf32-cosmac -O binary firmware.o $@
+
 clean:
-	rm -f hardware.json hardware.log hardware.asc hardware.rpt hardware.bin
+	rm -f hardware.json hardware.log hardware.asc hardware.rpt hardware.bin firmware.bin
 
 
 

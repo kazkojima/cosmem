@@ -82,7 +82,13 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
     input  flash_io2_di,
     input  flash_io3_di,
     
-    output probe
+    output probe,
+
+    output mbox_sclk,
+    output mbox_mosi,
+    input mbox_miso,
+    input mbox_ready,
+    output mbox_cs
    );
 
    reg 	   xclk, nwait, clr;
@@ -97,7 +103,6 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    reg [2:0]  xclk_cycle;
    reg 	      mem_wreq;
    reg 	      mem_rreq;
-   reg 	      init_cycle;
    reg 	      tpa_sync;
 
    reg [15:0] load_addr;
@@ -111,7 +116,17 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
    wire [31:0] spimem_rdata;
    wire [31:0] spimemio_cfgreg_di;
    wire [31:0] spimemio_cfgreg_do;
-   
+
+   reg [2:0]   mbox_rindex;
+   reg [2:0]   mbox_windex;
+   wire [7:0]  mbox_rdata;
+   reg [7:0]   mbox_wdata;
+   wire        mbox_valid;
+   reg 	       mbox_wstrb;
+   wire        mbox_test;
+
+   assign probe = mbox_wdata[0];
+        
    assign mem_addr = { mem_hiaddr, mem_loaddr };
 
    assign db0_oe = !nmrd;
@@ -163,6 +178,25 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
       .cfgreg_do(spimemio_cfgreg_do)
       );
 
+   spimbox spimbox
+     (
+      .clk    (clk),
+      .resetn (resetn),
+
+      .sclk   (mbox_sclk),
+      .mosi   (mbox_mosi),
+      .miso   (mbox_miso),
+      .ready  (mbox_ready),
+      .cs     (mbox_cs),
+
+      .rindex (mbox_rindex),
+      .windex (mbox_windex),
+      .rdata  (mbox_rdata),
+      .wdata  (mbox_wdata),
+      .valid  (mbox_valid),
+      .wstrb  (mbox_wstrb)
+     );
+   
 /*
     function [7:0] flash_mem;
       input reg [15:0] addr;
@@ -193,11 +227,12 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	   mem_hiaddr <= 0;
 	   mem_loaddr <= 0;
 	   tpa_sync <= 0;
-	   init_cycle <= 0;
 	   // Initialize loader
 	   load <= 1;
 	   lclk <= 0;
 	   load_addr <= 0;
+	   // Mbox
+	   mbox_wstrb <= 0;
 	end // if (!resetn)
       else if (load)
 	begin
@@ -234,30 +269,44 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 		  begin
 		     xclk_cycle <= 7;
 		     mem_wreq <= 0;
-		     init_cycle <= 0;
 		  end
-		if (!init_cycle && xclk_cycle == 3)
+		if (xclk_cycle == 3)
 		  begin
 		     mem_loaddr <= {ma7, ma6, ma5, ma4, ma3, ma2, ma1, ma0};
 		     if (nmrd == 0)
 		       begin
 			  mem_rreq <= 1;
+			  mbox_rindex <= {ma2, ma1, ma0};
 		       end
 		  end
 	     end
-	   if (!init_cycle && xclk && !clk_cnt[2]) // xclk falling
+	   if (xclk && !clk_cnt[2]) // xclk falling
 	     begin
 		// cycle count is updated already at the falling edge
 		// i.e. xclk_cycle N means the start of cycle N.
 		if (nmwr == 0 && xclk_cycle == 6)
 		  begin
-		     mem_wreq <= 1;
+		     if (mem_addr < MEM_WORDS)
+		       begin
+			  mem_wreq <= 1;
+		       end
+		     else if (mem_addr >= 16'hf000)
+		       begin
+			  mbox_wstrb <= 1;
+			  mbox_windex <= mem_addr[2:0];
+			  mbox_wdata <= {db7_di, db6_di, db5_di, db4_di,
+					 db3_di, db2_di, db1_di, db0_di};
+		       end
 		  end
 		if (mem_wreq)
 		  begin
 		     mem_wreq <= 0;
 		     mem[mem_addr] <= {db7_di, db6_di, db5_di, db4_di,
 				       db3_di, db2_di, db1_di, db0_di};
+		  end
+		if (mbox_wstrb)
+		  begin
+		     mbox_wstrb <= 0;
 		  end
 		if (xclk_cycle == 0)
 		  begin
@@ -270,7 +319,24 @@ module cosmem #(parameter integer MEM_WORDS = 1024,
 	     end
 	   if (mem_rreq)
 	     begin
-		mem_rdata <= mem[mem_addr];
+		if (mem_addr < MEM_WORDS)
+		  begin
+		     mem_rdata <= mem[mem_addr];
+		  end
+		else if (mem_addr == 16'hf008)
+		  begin
+		     mem_rdata[0] <= mbox_valid;
+		     mem_rdata[1] <= mbox_ready;
+		     mem_rdata[7:2] <= 6'b000000;
+		  end
+		else if (mem_addr >= 16'hf000 && mbox_valid)
+		  begin
+		     mem_rdata <= mbox_rdata;
+		  end
+		else
+		  begin
+		     mem_rdata <= 8'b00000000;
+		  end
 	     end
 
 	   xclk <= clk_cnt[2];

@@ -59,7 +59,14 @@ module hardware (
     inout  pin_23,
     // CE
     output pin_24,
-		 
+
+    // SPI and ready
+    output pin_25,
+    output pin_26,
+    input  pin_27,
+    input  pin_28,
+    output pin_29,
+
     // onboard LED
     output user_led,
 
@@ -186,6 +193,12 @@ module hardware (
         .flash_io2_di (flash_io2_di),
         .flash_io3_di (flash_io3_di),
 
-	.probe        (user_led    )
+	.probe        (user_led    ),
+
+	.mbox_sclk    (pin_25      ),
+	.mbox_mosi    (pin_26      ),
+	.mbox_miso    (pin_27      ),
+	.mbox_cs      (pin_29      ),
+	.mbox_ready   (pin_28      )
     );
 endmodule
