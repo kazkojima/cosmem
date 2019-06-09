@@ -8,6 +8,11 @@
         .type   start,@function
 start:
 	sex	r14
+	req
+	;; r4.0 = 0
+	ldi	0
+	plo	r4
+restart:
 	;; r1 = 0xf000
 	ldi	0xF0
 	phi	r1
@@ -32,17 +37,27 @@ loop:
 	;; r1 = 0xf008
 	ldi	8
 	plo	r1
-	;; wait ready
+	;; wait ready (bit 1 of [0xf008])
 wait:
 	nop
 	nop
 	nop
 	nop
 	ldn	r1
-	ani	1
+	ani	2
 	lsnz
 	br	wait
-	br	start
+	glo	r4
+	adi	1
+	plo	r4
+	ani	1
+	lsnz
+	br	qoff
+	seq
+	br	restart
+qoff:
+	req
+	br	restart
 
 mboxdat:
 	.byte	0xc3, 1, 2, 3, 4, 5, 6, 7

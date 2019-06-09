@@ -129,7 +129,7 @@ module spimbox
 		  3'b101: rd_data <= si[23:16];
 		  3'b110: rd_data <= si[15:8];
 		  3'b111: rd_data <= si[7:0];
-		endcase // case (windex)
+		endcase // case (rindex)
 	     end
 	end // else: !if(!resetn)
    end // always @ (posedge clk)
